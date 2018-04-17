@@ -142,9 +142,9 @@ class SimpleSwitch13(app_manager.RyuApp):
         dst = eth.dst
         src = eth.src
 
-
+        # Not sure if this means anything all data paths from h1-h4 are 1
         dpid = datapath.id
-        print("datapathid: " + dpid)
+        print("datapathid: " + str(dpid))
         self.mac_to_port.setdefault(dpid, {})
 
         self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
