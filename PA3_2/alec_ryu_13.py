@@ -102,10 +102,10 @@ class SimpleSwitch13(app_manager.RyuApp):
             print('In ARP received')
             arp_protocol = pkt.get_protocol(arp.arp)
             print(eth.src)
-            if eth.src == self.clients[0]['ip'] \
-                    or eth.src == self.clients[1]['ip'] \
-                    or eth.src == self.clients[2]['ip']\
-                    or eth.src == self.clients[3]['ip']:
+            if eth.src == self.clients[0]['mac'] \
+                    or eth.src == self.clients[1]['mac'] \
+                    or eth.src == self.clients[2]['mac']\
+                    or eth.src == self.clients[3]['mac']:
                 print('ARP request from client')
                 e = ethernet.ethernet(dst=eth.src,
                                       src=eth.dst,
@@ -123,7 +123,7 @@ class SimpleSwitch13(app_manager.RyuApp):
                     self.current_server = 1
                 elif self.current_server == 1:
                     self.current_server = 0
-            elif eth.src == self.servers[0]['ip'] or eth.src == self.servers[1]['ip']:
+            elif eth.src == self.servers[0]['mac'] or eth.src == self.servers[1]['mac']:
                 print('ARP request from server')
                 e = ethernet.ethernet(dst=eth.src,
                                       src=eth.dst,
