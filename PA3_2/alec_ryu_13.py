@@ -150,6 +150,11 @@ class SimpleSwitch13(app_manager.RyuApp):
         self.mac_to_port.setdefault(dpid, {})
 
         self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
+
+        # ports are the host numbers
+        # scr and dst are MAC address
+        # dst always comes in as FF:FF:FF:FF:FF:FF
+
         print("packet in dpid: " + str(dpid) + " src: " + src + " dst: " + dst + " in_port: " + str(in_port))
 
         # learn a mac address to avoid FLOOD next time.
