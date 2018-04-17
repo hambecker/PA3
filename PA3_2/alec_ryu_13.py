@@ -102,6 +102,8 @@ class SimpleSwitch13(app_manager.RyuApp):
             print('In ARP received')
             arp_protocol = pkt.get_protocol(arp.arp)
             print(eth)
+
+            # eth addresses are mac addresses
             if eth.src == self.clients[0]['mac'] \
                     or eth.src == self.clients[1]['mac'] \
                     or eth.src == self.clients[2]['mac']\
@@ -148,6 +150,7 @@ class SimpleSwitch13(app_manager.RyuApp):
         self.mac_to_port.setdefault(dpid, {})
 
         self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
+        print("packet in dpid: %s src: %s dst: %s in_port:%s", dpid, src, dst, in_port)
 
         # learn a mac address to avoid FLOOD next time.
         self.mac_to_port[dpid][src] = in_port
