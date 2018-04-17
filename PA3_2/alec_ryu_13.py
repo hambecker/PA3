@@ -101,6 +101,7 @@ class SimpleSwitch13(app_manager.RyuApp):
         if eth.ethertype == ether_types.ETH_TYPE_ARP:
             print('In ARP received')
             arp_protocol = pkt.get_protocol(arp.arp)
+            print(eth.src)
             if eth.src == self.clients[0]['ip'] \
                     or eth.src == self.clients[1]['ip'] \
                     or eth.src == self.clients[2]['ip']\
