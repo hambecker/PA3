@@ -32,13 +32,13 @@ class SimpleSwitch13(app_manager.RyuApp):
         super(SimpleSwitch13, self).__init__(*args, **kwargs)
         self.mac_to_port = {}
 
-        self.servers = [{'ip': "10.0.0.5", 'mac': "00:00:00:00:00:05"},
-                        {'ip': "10.0.0.6", 'mac': "00:00:00:00:00:06"}]
+        self.servers = [{'ip': "10.0.0.5", 'mac': "00:00:00:00:00:05", 'port': 5},
+                        {'ip': "10.0.0.6", 'mac': "00:00:00:00:00:06", 'port': 6}]
 
-        self.clients = [{'ip': "10.0.0.1", 'mac': "00:00:00:00:00:01"},
-                        {'ip': "10.0.0.2", 'mac': "00:00:00:00:00:02"},
-                        {'ip': "10.0.0.3", 'mac': "00:00:00:00:00:03"},
-                        {'ip': "10.0.0.4", 'mac': "00:00:00:00:00:04"}]
+        self.clients = [{'ip': "10.0.0.1", 'mac': "00:00:00:00:00:01", 'port': 1},
+                        {'ip': "10.0.0.2", 'mac': "00:00:00:00:00:02", 'port': 2},
+                        {'ip': "10.0.0.3", 'mac': "00:00:00:00:00:03", 'port': 3},
+                        {'ip': "10.0.0.4", 'mac': "00:00:00:00:00:04", 'port': 4}]
 
         self.current_server = 0
 
@@ -98,48 +98,6 @@ class SimpleSwitch13(app_manager.RyuApp):
             # ignore lldp packet
             return
             # handle the arp request
-        if eth.ethertype == ether_types.ETH_TYPE_ARP:
-            print('In ARP received')
-            arp_protocol = pkt.get_protocol(arp.arp)
-            print(eth)
-
-            # eth addresses are mac addresses
-            if eth.src == self.clients[0]['mac'] \
-                    or eth.src == self.clients[1]['mac'] \
-                    or eth.src == self.clients[2]['mac']\
-                    or eth.src == self.clients[3]['mac']:
-                print('ARP request from client')
-                e = ethernet.ethernet(dst=eth.src,
-                                      src=eth.dst,
-                                      ethertype=ether.ETH_TYPE_ARP)
-                a = arp.arp(hwtype=1, proto=0x0800, hlen=6, plen=4, opcode=2,
-                            src_mac=self.servers[self.current_server]['mac'],
-                            src_ip=self.servers[self.current_server]['ip'],
-                            dst_mac=arp_protocol.src_mac, dst_ip=arp_protocol.src_ip)
-                p = packet.Packet()
-                p.add_protocol(e)
-                p.add_protocol(a)
-                p.serialize()
-                p_copy = packet.Packet(p.data[:])
-                if self.current_server == 0:
-                    self.current_server = 1
-                elif self.current_server == 1:
-                    self.current_server = 0
-            elif eth.src == self.servers[0]['mac'] or eth.src == self.servers[1]['mac']:
-                print('ARP request from server')
-                e = ethernet.ethernet(dst=eth.src,
-                                      src=eth.dst,
-                                      ethertype=ether.ETH_TYPE_ARP)
-                a = arp.arp(hwtype=1, proto=0x0800, hlen=6, plen=4, opcode=2,
-                            src_mac=arp_protocol.dst_mac,
-                            src_ip=arp_protocol.dst_mac,
-                            dst_mac=arp_protocol.src_mac,
-                            dst_ip=arp_protocol.src_ip)
-                p = packet.Packet()
-                p.add_protocol(e)
-                p.add_protocol(a)
-                p.serialize()
-                p_copy = packet.Packet(p.data[:])
 
         dst = eth.dst
         src = eth.src
@@ -147,6 +105,7 @@ class SimpleSwitch13(app_manager.RyuApp):
         # Not sure if this means anything all data paths from h1-h4 are 1
         dpid = datapath.id
         print("datapathid: " + str(dpid))
+        print(datapath)
         self.mac_to_port.setdefault(dpid, {})
 
         self.logger.info("packet in %s %s %s %s", dpid, src, dst, in_port)
@@ -159,6 +118,103 @@ class SimpleSwitch13(app_manager.RyuApp):
 
         # learn a mac address to avoid FLOOD next time.
         self.mac_to_port[dpid][src] = in_port
+
+        if eth.ethertype == ether_types.ETH_TYPE_ARP:
+            print('In ARP received')
+            arp_protocol = pkt.get_protocol(arp.arp)
+            print(eth)
+
+            # eth addresses are mac addresses
+            if eth.src == self.clients[0]['mac'] \
+                    or eth.src == self.clients[1]['mac'] \
+                    or eth.src == self.clients[2]['mac']\
+                    or eth.src == self.clients[3]['mac']:
+                print('ARP request from client')
+                e = ethernet.ethernet(dst=src,
+                                      src=dst,
+                                      ethertype=ether.ETH_TYPE_ARP)
+                a = arp.arp(hwtype=1, proto=0x0800, hlen=6, plen=4, opcode=2,
+                            src_mac=self.servers[self.current_server]['mac'],
+                            src_ip=self.servers[self.current_server]['ip'],
+                            dst_mac=arp_protocol.src_mac, dst_ip=arp_protocol.src_ip)
+                p = packet.Packet()
+                p.add_protocol(e)
+                p.add_protocol(a)
+                p.serialize()
+                p_copy = packet.Packet(p.data[:])
+
+                # set the output port to be looked up later
+                self.mac_to_port[dpid][self.current_server['mac']] = self.servers[self.current_server]['port']
+
+                out_port = self.servers[self.current_server]['port']
+
+                # install a flow to avoid packet_in next time
+                actions = [parser.OFPActionOutput(out_port)]
+                if out_port != ofproto.OFPP_FLOOD:
+                    match = parser.OFPMatch(in_port=in_port, ipv4_dst=self.servers[self.current_server]['ip'])
+                    # verify if we have a valid buffer_id, if yes avoid to send both
+                    # flow_mod & packet_out
+                    if msg.buffer_id != ofproto.OFP_NO_BUFFER:
+                        self.add_flow(datapath, 1, match, actions, msg.buffer_id)
+                    else:
+                        self.add_flow(datapath, 1, match, actions)
+                if self.current_server == 0:
+                    self.current_server = 1
+                elif self.current_server == 1:
+                    self.current_server = 0
+                data = None
+                if msg.buffer_id == ofproto.OFP_NO_BUFFER:
+                    data = msg.data
+                out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
+                                          in_port=in_port, actions=actions, data=data)
+                datapath.send_msg(out)
+                return
+
+            elif eth.src == self.servers[0]['mac'] or eth.src == self.servers[1]['mac']:
+                print('ARP request from server')
+                e = ethernet.ethernet(dst=eth.src,
+                                      src=eth.dst,
+                                      ethertype=ether.ETH_TYPE_ARP)
+                a = arp.arp(hwtype=1, proto=0x0800, hlen=6, plen=4, opcode=2,
+                            src_mac=arp_protocol.dst_mac,
+                            src_ip=arp_protocol.dst_ip,
+                            dst_mac=arp_protocol.src_mac,
+                            dst_ip=arp_protocol.src_ip)
+                p = packet.Packet()
+                p.add_protocol(e)
+                p.add_protocol(a)
+                p.serialize()
+                p_copy = packet.Packet(p.data[:])
+                if arp_protocol.dst_ip == self.clients[0]['ip']:
+                    self.mac_to_port[dpid][dst] = self.client[0]['port']
+                    out_port = self.client[0]['port']
+                elif arp_protocol.dst_ip == self.clients[1]['ip']:
+                    self.mac_to_port[dpid][dst] = self.client[1]['port']
+                    out_port = self.client[0]['port']
+                elif arp_protocol.dst_ip == self.clients[2]['ip']:
+                    self.mac_to_port[dpid][dst] = self.client[2]['port']
+                    out_port = self.client[0]['port']
+                elif arp_protocol.dst_ip == self.clients[3]['ip']:
+                    self.mac_to_port[dpid][dst] = self.client[3]['port']
+                    out_port = self.client[0]['port']
+                # install a flow to avoid packet_in next time
+                actions = [parser.OFPActionOutput(out_port)]
+                if out_port != ofproto.OFPP_FLOOD:
+                    match = parser.OFPMatch(in_port=in_port, ipv4_dst=self.servers[self.current_server]['ip'])
+                    # verify if we have a valid buffer_id, if yes avoid to send both
+                    # flow_mod & packet_out
+                    if msg.buffer_id != ofproto.OFP_NO_BUFFER:
+                        self.add_flow(datapath, 1, match, actions, msg.buffer_id)
+                    else:
+                        self.add_flow(datapath, 1, match, actions)
+                data = None
+                if msg.buffer_id == ofproto.OFP_NO_BUFFER:
+                    data = msg.data
+                out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
+                                          in_port=in_port, actions=actions, data=data)
+                datapath.send_msg(out)
+                return
+
 
         if dst in self.mac_to_port[dpid]:
             out_port = self.mac_to_port[dpid][dst]
