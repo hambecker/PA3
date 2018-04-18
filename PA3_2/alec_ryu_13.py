@@ -151,6 +151,7 @@ class SimpleSwitch13(app_manager.RyuApp):
                 # install a flow to avoid packet_in next time
                 actions = [parser.OFPActionOutput(out_port)]
                 if out_port != ofproto.OFPP_FLOOD:
+                    print('installing the flow table for client')
                     match = parser.OFPMatch(in_port=in_port, ipv4_dst=self.servers[self.current_server]['ip'])
                     # verify if we have a valid buffer_id, if yes avoid to send both
                     # flow_mod & packet_out
@@ -164,10 +165,12 @@ class SimpleSwitch13(app_manager.RyuApp):
                     self.current_server = 0
                 data = None
                 if msg.buffer_id == ofproto.OFP_NO_BUFFER:
-                    data = msg.data
-                out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
+                    data = p.data
+                    print("got data to send back to client")
+                out = parser.OFPPacketOut(datapath=datapath, buffer_id=p.buffer_id,
                                           in_port=in_port, actions=actions, data=data)
                 datapath.send_msg(out)
+
                 return
 
             elif eth.src == self.servers[0]['mac'] or eth.src == self.servers[1]['mac']:
@@ -184,23 +187,26 @@ class SimpleSwitch13(app_manager.RyuApp):
                 p.add_protocol(e)
                 p.add_protocol(a)
                 p.serialize()
+                client_num = 0
                 p_copy = packet.Packet(p.data[:])
                 if arp_protocol.dst_ip == self.clients[0]['ip']:
                     self.mac_to_port[dpid][dst] = self.client[0]['port']
-                    out_port = self.client[0]['port']
+                    client_num = 0
                 elif arp_protocol.dst_ip == self.clients[1]['ip']:
                     self.mac_to_port[dpid][dst] = self.client[1]['port']
-                    out_port = self.client[0]['port']
+                    client_num = 1
                 elif arp_protocol.dst_ip == self.clients[2]['ip']:
                     self.mac_to_port[dpid][dst] = self.client[2]['port']
-                    out_port = self.client[0]['port']
+                    client_num = 2
                 elif arp_protocol.dst_ip == self.clients[3]['ip']:
                     self.mac_to_port[dpid][dst] = self.client[3]['port']
-                    out_port = self.client[0]['port']
+                    client_num = 3
+                out_port = self.client[client_num]['port']
                 # install a flow to avoid packet_in next time
                 actions = [parser.OFPActionOutput(out_port)]
                 if out_port != ofproto.OFPP_FLOOD:
-                    match = parser.OFPMatch(in_port=in_port, ipv4_dst=self.servers[self.current_server]['ip'])
+                    match = parser.OFPMatch(in_port=in_port, ipv4_dst=self.clients[client_num]['ip'])
+                    print('installing the flow table for server')
                     # verify if we have a valid buffer_id, if yes avoid to send both
                     # flow_mod & packet_out
                     if msg.buffer_id != ofproto.OFP_NO_BUFFER:
@@ -208,13 +214,13 @@ class SimpleSwitch13(app_manager.RyuApp):
                     else:
                         self.add_flow(datapath, 1, match, actions)
                 data = None
-                if msg.buffer_id == ofproto.OFP_NO_BUFFER:
-                    data = msg.data
-                out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
+                if p.buffer_id == ofproto.OFP_NO_BUFFER:
+                    data = p.data
+                    print('Got Data to send back VIA ARP')
+                out = parser.OFPPacketOut(datapath=datapath, buffer_id=p.buffer_id,
                                           in_port=in_port, actions=actions, data=data)
                 datapath.send_msg(out)
                 return
-
 
         if dst in self.mac_to_port[dpid]:
             out_port = self.mac_to_port[dpid][dst]
