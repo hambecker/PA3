@@ -144,7 +144,8 @@ class SimpleSwitch13(app_manager.RyuApp):
                 p_copy = packet.Packet(p.data[:])
 
                 # set the output port to be looked up later
-                self.mac_to_port[dpid][self.current_server['mac']] = self.servers[self.current_server]['port']
+                self.mac_to_port[dpid][self.current_server['mac']]
+                self.servers[self.current_server]['port']
 
                 out_port = self.servers[self.current_server]['port']
 
