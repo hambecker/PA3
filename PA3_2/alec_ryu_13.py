@@ -32,8 +32,8 @@ class SimpleSwitch13(app_manager.RyuApp):
         super(SimpleSwitch13, self).__init__(*args, **kwargs)
         self.mac_to_port = {}
 
-        self.servers = [{'ip': "10.0.0.5", 'mac': "00:00:00:00:00:05", 'port': 5},
-                        {'ip': "10.0.0.6", 'mac': "00:00:00:00:00:06", 'port': 6}]
+        self.servers = [{'ip': "10.0.0.5", 'mac': "00:00:00:00:00:05", 'port': 5, 'ip_spoof': ""},
+                        {'ip': "10.0.0.6", 'mac': "00:00:00:00:00:06", 'port': 6, 'ip_spoof': ""}]
 
         self.clients = [{'ip': "10.0.0.1", 'mac': "00:00:00:00:00:01", 'port': 1},
                         {'ip': "10.0.0.2", 'mac': "00:00:00:00:00:02", 'port': 2},
@@ -148,12 +148,16 @@ class SimpleSwitch13(app_manager.RyuApp):
                 # self.servers[self.current_server]['port']
                 #
                 out_port = self.servers[self.current_server]['port']
+                self.servers[self.current_server]['ip_spoof'] = arp_protocol.dst_ip
 
                 # install a flow to avoid packet_in next time
-                actions = [parser.OFPActionOutput(out_port)]
+                set_ip = parser.OFPActionSetField(ipv4_dst=self.servers[self.current_server]['ip'])
+                actions = [set_ip, parser.OFPActionOutput(out_port)]
                 if out_port != ofproto.OFPP_FLOOD:
                     print('installing the flow table for client')
-                    match = parser.OFPMatch(in_port=in_port, ipv4_dst=arp_protocol.dst_ip,
+                    match = parser.OFPMatch(in_port=in_port,
+                                            ipv4_dst=arp_protocol.dst_ip,
+                                            eth_dst=self.servers[self.current_server]['mac'],
                                             eth_type=ether_types.ETH_TYPE_IP)
                     # verify if we have a valid buffer_id, if yes avoid to send both
                     # flow_mod & packet_out
@@ -204,12 +208,18 @@ class SimpleSwitch13(app_manager.RyuApp):
                 elif arp_protocol.dst_ip == self.clients[3]['ip']:
                     # self.mac_to_port[dpid][dst_mac] = self.client[3]['port']
                     client_num = 3
-                # out_port = self.client[client_num]['port']
+                if arp_protocol.src_ip == self.servers[0]['ip']:
+                    server_num = 0
+                else:
+                    server_num = 1
                 # install a flow to avoid packet_in next time
                 out_port = self.clients[client_num]['port']
-                actions = [parser.OFPActionOutput(out_port)]
+                set_ip = parser.OFPActionSetField(ipv4_src=self.servers[server_num]['ip_spoof'])
+                actions = [set_ip, parser.OFPActionOutput(out_port)]
                 if out_port != ofproto.OFPP_FLOOD:
-                    match = parser.OFPMatch(in_port=in_port, ipv4_dst=self.clients[client_num]['ip'],
+                    match = parser.OFPMatch(in_port=in_port,
+                                            ipv4_dst=self.clients[client_num]['ip'],
+                                            eth_dst=self.clients[client_num]['mac'],
                                             eth_type=ether_types.ETH_TYPE_IP)
                     print('installing the flow table for server')
                     # verify if we have a valid buffer_id, if yes avoid to send both
@@ -223,8 +233,11 @@ class SimpleSwitch13(app_manager.RyuApp):
                     data = p_copy.data
                     print("got data to send back to client")
                 actions = [parser.OFPActionOutput(ofproto.OFPP_IN_PORT)]
-                out = parser.OFPPacketOut(datapath=datapath,  buffer_id=ofproto.OFP_NO_BUFFER,
-                                          in_port=in_port, actions=actions, data=data)
+                out = parser.OFPPacketOut(datapath=datapath,
+                                          buffer_id=ofproto.OFP_NO_BUFFER,
+                                          in_port=in_port,
+                                          actions=actions,
+                                          data=data)
                 datapath.send_msg(out)
                 return
 
