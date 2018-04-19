@@ -153,7 +153,7 @@ class SimpleSwitch13(app_manager.RyuApp):
                 actions = [parser.OFPActionOutput(out_port)]
                 if out_port != ofproto.OFPP_FLOOD:
                     print('installing the flow table for client')
-                    match = parser.OFPMatch(in_port=in_port, ipv4_dst=arp_protocol.dst_ip)
+                    match = parser.OFPMatch(in_port=in_port, ipv4_dst=arp_protocol.dst_ip, eth_type=ether_types.ETH_TYPE_IP)
                     # verify if we have a valid buffer_id, if yes avoid to send both
                     # flow_mod & packet_out
                     if msg.buffer_id != ofproto.OFP_NO_BUFFER:
