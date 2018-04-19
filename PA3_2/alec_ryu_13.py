@@ -165,7 +165,7 @@ class SimpleSwitch13(app_manager.RyuApp):
                 elif self.current_server == 1:
                     self.current_server = 0
                 data = None
-                if p.buffer_id == ofproto.OFP_NO_BUFFER:
+                if msg.buffer_id == ofproto.OFP_NO_BUFFER:
                     data = p_copy.data
                     print("got data to send back to client")
                 actions = [parser.OFPActionOutput(in_port)]
