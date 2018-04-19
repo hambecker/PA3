@@ -133,7 +133,7 @@ class SimpleSwitch13(app_manager.RyuApp):
                 e = ethernet.ethernet(dst=src_mac,
                                       src=dst_mac,
                                       ethertype=ether.ETH_TYPE_ARP)
-                a = arp.arp(hwtype=1, proto=0x0800, hlen=6, plen=4, opcode=2,
+                a = arp.arp(hwtype=1, proto=0x0800, hlen=6, plen=4, opcode=arp.ARP_REPLY,
                             src_mac=self.servers[self.current_server]['mac'],
                             src_ip=self.servers[self.current_server]['ip'],
                             dst_mac=arp_protocol.src_mac, dst_ip=arp_protocol.src_ip)
@@ -169,7 +169,7 @@ class SimpleSwitch13(app_manager.RyuApp):
                     data = p_copy.data
                     print("got data to send back to client")
                 actions = [parser.OFPActionOutput(ofproto.OFPP_IN_PORT)]
-                out = parser.OFPPacketOut(datapath=datapath,  buffer_id= ofproto.OFP_NO_BUFFER,
+                out = parser.OFPPacketOut(datapath=datapath,  buffer_id=ofproto.OFP_NO_BUFFER,
                                           in_port=in_port, actions=actions, data=data)
                 datapath.send_msg(out)
 
