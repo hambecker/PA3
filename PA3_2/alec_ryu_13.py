@@ -168,7 +168,7 @@ class SimpleSwitch13(app_manager.RyuApp):
                 if msg.buffer_id == ofproto.OFP_NO_BUFFER:
                     data = p_copy.data
                     print("got data to send back to client")
-                # actions = [parser.OFPActionOutput(in_port)]
+                actions = [parser.OFPActionOutput(in_port)]
                 out = parser.OFPPacketOut(datapath=datapath,  buffer_id=msg.buffer_id,
                                           in_port=in_port, actions=actions, data=data)
                 datapath.send_msg(out)
@@ -180,7 +180,7 @@ class SimpleSwitch13(app_manager.RyuApp):
                 e = ethernet.ethernet(dst=eth.src,
                                       src=eth.dst,
                                       ethertype=ether.ETH_TYPE_ARP)
-                a = arp.arp(hwtype=1, proto=0x0800, hlen=6, plen=4, opcode=2,
+                a = arp.arp(hwtype=1, proto=0x0800, hlen=6, plen=4, opcode=1,
                             src_mac=arp_protocol.dst_mac,
                             src_ip=arp_protocol.dst_ip,
                             dst_mac=arp_protocol.src_mac,
