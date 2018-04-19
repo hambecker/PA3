@@ -168,7 +168,7 @@ class SimpleSwitch13(app_manager.RyuApp):
                 if msg.buffer_id == ofproto.OFP_NO_BUFFER:
                     data = p.data
                     print("got data to send back to client")
-                out = parser.OFPPacketOut(datapath=datapath, buffer_id=p.buffer_id,
+                out = parser.OFPPacketOut(datapath=datapath,  # buffer_id=p.buffer_id,
                                           in_port=in_port, actions=actions, data=data)
                 datapath.send_msg(out)
 
