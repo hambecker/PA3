@@ -170,7 +170,7 @@ class SimpleSwitch13(app_manager.RyuApp):
                     print("got data to send back to client")
                 out = parser.OFPPacketOut(datapath=datapath,  # buffer_id=p.buffer_id,
                                           in_port=in_port, actions=actions, data=data)
-                datapath.send_msg(out)
+                datapath.send_msg(p_copy)
 
                 return
 
