@@ -165,7 +165,7 @@ class SimpleSwitch13(app_manager.RyuApp):
                 elif self.current_server == 1:
                     self.current_server = 0
                 data = None
-                print("p.buffer_id = " + str(p.buffer_id))
+                # print("p.buffer_id = " + str(p.buffer_id))
                 if p.buffer_id == ofproto.OFP_NO_BUFFER:
                     data = p_copy.data
                     print("got data to send back to client")
