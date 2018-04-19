@@ -193,16 +193,16 @@ class SimpleSwitch13(app_manager.RyuApp):
                 client_num = 0
                 p_copy = packet.Packet(p.data[:])
                 if arp_protocol.dst_ip == self.clients[0]['ip']:
-                    self.mac_to_port[dpid][dst_mac] = self.client[0]['port']
+                    # self.mac_to_port[dpid][dst_mac] = self.client[0]['port']
                     client_num = 0
                 elif arp_protocol.dst_ip == self.clients[1]['ip']:
-                    self.mac_to_port[dpid][dst_mac] = self.client[1]['port']
+                    # self.mac_to_port[dpid][dst_mac] = self.client[1]['port']
                     client_num = 1
                 elif arp_protocol.dst_ip == self.clients[2]['ip']:
-                    self.mac_to_port[dpid][dst_mac] = self.client[2]['port']
+                    # self.mac_to_port[dpid][dst_mac] = self.client[2]['port']
                     client_num = 2
                 elif arp_protocol.dst_ip == self.clients[3]['ip']:
-                    self.mac_to_port[dpid][dst_mac] = self.client[3]['port']
+                    # self.mac_to_port[dpid][dst_mac] = self.client[3]['port']
                     client_num = 3
                 # out_port = self.client[client_num]['port']
                 # install a flow to avoid packet_in next time
