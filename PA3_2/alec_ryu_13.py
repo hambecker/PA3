@@ -135,7 +135,7 @@ class SimpleSwitch13(app_manager.RyuApp):
                                       ethertype=ether.ETH_TYPE_ARP)
                 a = arp.arp(hwtype=1, proto=0x0800, hlen=6, plen=4, opcode=arp.ARP_REPLY,
                             src_mac=self.servers[self.current_server]['mac'],
-                            src_ip=self.servers[self.current_server]['ip'],
+                            src_ip=arp_protocol.dst_ip,
                             dst_mac=arp_protocol.src_mac, dst_ip=arp_protocol.src_ip)
                 p = packet.Packet()
                 p.add_protocol(e)
