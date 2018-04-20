@@ -190,6 +190,7 @@ class SimpleSwitch13(app_manager.RyuApp):
                             src_ip=arp_protocol.dst_ip,
                             dst_mac=arp_protocol.src_mac,
                             dst_ip=arp_protocol.src_ip)
+                self.logger.info(a)
                 p = packet.Packet()
                 p.add_protocol(e)
                 p.add_protocol(a)
