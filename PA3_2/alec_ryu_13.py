@@ -185,6 +185,7 @@ class SimpleSwitch13(app_manager.RyuApp):
                 e = ethernet.ethernet(dst=eth.src,
                                       src=eth.dst,
                                       ethertype=ether.ETH_TYPE_ARP)
+                self.logger.info(e)
                 a = arp.arp(hwtype=1, proto=0x0800, hlen=6, plen=4, opcode=arp.ARP_REPLY,
                             src_mac=arp_protocol.dst_mac,
                             src_ip=arp_protocol.dst_ip,
