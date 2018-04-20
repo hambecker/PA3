@@ -32,13 +32,24 @@ class SimpleSwitch13(app_manager.RyuApp):
         super(SimpleSwitch13, self).__init__(*args, **kwargs)
         self.mac_to_port = {}
 
-        self.servers = [{'ip': "10.0.0.5", 'mac': "00:00:00:00:00:05", 'port': 5, 'ip_spoof': ""},
-                        {'ip': "10.0.0.6", 'mac': "00:00:00:00:00:06", 'port': 6, 'ip_spoof': ""}]
+        self.servers = [{'ip': "10.0.0.5",
+                         'mac': "00:00:00:00:00:05",
+                         'port': 5,
+                         'ip_spoof': ""},
+                        {'ip': "10.0.0.6",
+                         'mac': "00:00:00:00:00:06",
+                         'port': 6,
+                         'ip_spoof': ""}]
 
         self.clients = [{'ip': "10.0.0.1", 'mac': "00:00:00:00:00:01", 'port': 1},
                         {'ip': "10.0.0.2", 'mac': "00:00:00:00:00:02", 'port': 2},
                         {'ip': "10.0.0.3", 'mac': "00:00:00:00:00:03", 'port': 3},
                         {'ip': "10.0.0.4", 'mac': "00:00:00:00:00:04", 'port': 4}]
+
+        self.clients_new = {"10.0.0.1": "00:00:00:00:00:01",
+                            "10.0.0.2": "00:00:00:00:00:02",
+                            "10.0.0.3": "00:00:00:00:00:03",
+                            "10.0.0.4": "00:00:00:00:00:04"}
 
         self.current_server = 0
 
@@ -187,9 +198,9 @@ class SimpleSwitch13(app_manager.RyuApp):
                                       ethertype=ether.ETH_TYPE_ARP)
                 self.logger.info(e)
                 a = arp.arp(hwtype=1, proto=0x0800, hlen=6, plen=4, opcode=arp.ARP_REPLY,
-                            src_mac=arp_protocol.dst_mac,
+                            src_mac=self.clients_new[arp_protocol.dst_ip],
                             src_ip=arp_protocol.dst_ip,
-                            dst_mac=arp_protocol.src_mac,
+                            dst_mac=arp_protocol.src_mac, # need to change this
                             dst_ip=arp_protocol.src_ip)
                 self.logger.info(a)
                 p = packet.Packet()
