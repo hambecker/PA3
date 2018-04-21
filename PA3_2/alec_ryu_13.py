@@ -130,17 +130,21 @@ class SimpleSwitch13(app_manager.RyuApp):
         # learn a mac address to avoid FLOOD next time.
         self.mac_to_port[dpid][src_mac] = in_port
 
+        # Intercept an ARP request
         if eth.ethertype == ether_types.ETH_TYPE_ARP:
             print('In ARP received')
             arp_protocol = pkt.get_protocol(arp.arp)
             print(eth)
 
             # eth addresses are mac addresses
+            # Handle a client ARP request
             if eth.src == self.clients[0]['mac'] \
                     or eth.src == self.clients[1]['mac'] \
                     or eth.src == self.clients[2]['mac']\
                     or eth.src == self.clients[3]['mac']:
                 print('ARP request from client')
+
+                # Build packet to send back to client
                 e = ethernet.ethernet(dst=src_mac,
                                       src=dst_mac,
                                       ethertype=ether.ETH_TYPE_ARP)
@@ -154,11 +158,10 @@ class SimpleSwitch13(app_manager.RyuApp):
                 p.serialize()
                 p_copy = packet.Packet(p.data[:])
 
-                # set the output port to be looked up later
-                # self.mac_to_port[dpid][self.current_server['mac']]
-                # self.servers[self.current_server]['port']
-                #
+                # find the port of the current server that can handle a request
                 out_port = self.servers[self.current_server]['port']
+
+                # save the ip that the server is suppose to look like it is coming from
                 self.servers[self.current_server]['ip_spoof'] = arp_protocol.dst_ip
 
                 # install a flow to avoid packet_in next time
@@ -176,14 +179,20 @@ class SimpleSwitch13(app_manager.RyuApp):
                         self.add_flow(datapath, 1, match, actions, msg.buffer_id)
                     else:
                         self.add_flow(datapath, 1, match, actions)
+
+                # update the current server so it sends to another server
                 if self.current_server == 0:
                     self.current_server = 1
                 elif self.current_server == 1:
                     self.current_server = 0
+
                 data = None
+
                 if msg.buffer_id == ofproto.OFP_NO_BUFFER:
                     data = p_copy.data
                     print("got data to send back to client")
+
+                # send the message back to the client
                 actions = [parser.OFPActionOutput(ofproto.OFPP_IN_PORT)]
                 out = parser.OFPPacketOut(datapath=datapath,  buffer_id=ofproto.OFP_NO_BUFFER,
                                           in_port=in_port, actions=actions, data=data)
@@ -191,8 +200,11 @@ class SimpleSwitch13(app_manager.RyuApp):
 
                 return
 
+            # handle the ARP request for if a server is sending one in
             elif eth.src == self.servers[0]['mac'] or eth.src == self.servers[1]['mac']:
                 print('ARP request from server')
+
+                # Create an ARP Reply packet
                 e = ethernet.ethernet(dst=eth.src,
                                       src=eth.dst,
                                       ethertype=ether.ETH_TYPE_ARP)
@@ -202,32 +214,37 @@ class SimpleSwitch13(app_manager.RyuApp):
                             src_ip=arp_protocol.dst_ip,
                             dst_mac=arp_protocol.src_mac, # need to change this
                             dst_ip=arp_protocol.src_ip)
-                self.logger.info(a)
+
                 p = packet.Packet()
                 p.add_protocol(e)
                 p.add_protocol(a)
                 p.serialize()
+
+                # Extract the correct client number in order to get the correct client data
                 client_num = 0
                 p_copy = packet.Packet(p.data[:])
                 if arp_protocol.dst_ip == self.clients[0]['ip']:
-                    # self.mac_to_port[dpid][dst_mac] = self.client[0]['port']
                     client_num = 0
                 elif arp_protocol.dst_ip == self.clients[1]['ip']:
-                    # self.mac_to_port[dpid][dst_mac] = self.client[1]['port']
                     client_num = 1
                 elif arp_protocol.dst_ip == self.clients[2]['ip']:
-                    # self.mac_to_port[dpid][dst_mac] = self.client[2]['port']
                     client_num = 2
                 elif arp_protocol.dst_ip == self.clients[3]['ip']:
-                    # self.mac_to_port[dpid][dst_mac] = self.client[3]['port']
                     client_num = 3
+
+                # Get the proper server number
                 if arp_protocol.src_ip == self.servers[0]['ip']:
                     server_num = 0
                 else:
                     server_num = 1
+
                 # install a flow to avoid packet_in next time
                 out_port = self.clients[client_num]['port']
+
+                # get the ip back from the server data that it supposed to be responding from
                 set_ip = parser.OFPActionSetField(ipv4_src=self.servers[server_num]['ip_spoof'])
+
+                # create a flow table entry
                 actions = [set_ip, parser.OFPActionOutput(out_port)]
                 if out_port != ofproto.OFPP_FLOOD:
                     match = parser.OFPMatch(in_port=in_port,
@@ -242,6 +259,8 @@ class SimpleSwitch13(app_manager.RyuApp):
                     else:
                         self.add_flow(datapath, 1, match, actions)
                 data = None
+
+                # Send the ARP response back to the client
                 if msg.buffer_id == ofproto.OFP_NO_BUFFER:
                     data = p_copy.data
                     print("got data to send back to client")
